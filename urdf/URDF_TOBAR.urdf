@@ -1,0 +1,286 @@
+<?xml version="1.0"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot name="modelo_robot">
+
+  <!-- ==================== LINKS ==================== -->
+
+  <link name="base_link">
+    <inertial>
+      <origin xyz="2.84278657919357E-07 0.0381609628951808 -0.583384358532695" rpy="0 0 0" />
+      <mass value="27.4958200098479" />
+      <inertia
+        ixx="3.19246837396599"
+        ixy="-2.9387581314034E-07"
+        ixz="-1.49336568283813E-07"
+        iyy="3.85193342661243"
+        iyz="0.000127536129794205"
+        izz="0.822510524082016" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://modelo_robot/meshes/base_link.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.0784313725490196 0.188235294117647 0.67843137254902 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://modelo_robot/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="link_1">
+    <inertial>
+      <origin xyz="-0.0325165171181241 -0.0228095991750975 0.0933784730370494" rpy="0 0 0" />
+      <mass value="0.630405629231271" />
+      <inertia
+        ixx="0.00171214736442837"
+        ixy="6.84720378617196E-06"
+        ixz="0.000253705917521712"
+        iyy="0.00139647864002034"
+        iyz="-3.89846768950926E-06"
+        izz="0.00114445516403779" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://modelo_robot/meshes/link_1.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.752941176470588 0 0 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://modelo_robot/meshes/link_1.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="link_2">
+    <inertial>
+      <origin xyz="0.147519778655831 -0.00175918176326004 0.0134297740610026" rpy="0 0 0" />
+      <mass value="1.02784966524486" />
+      <inertia
+        ixx="0.00150699328584461"
+        ixy="-1.48595740962868E-07"
+        ixz="-0.000353830391658643"
+        iyy="0.00219176202678705"
+        iyz="-1.16760618557143E-07"
+        izz="0.00254935156300818" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://modelo_robot/meshes/link_2.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://modelo_robot/meshes/link_2.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="link_3">
+    <inertial>
+      <origin xyz="0.146214860895162 -0.00163263989643377 0.0139778378588361" rpy="0 0 0" />
+      <mass value="1.01380583468225" />
+      <inertia
+        ixx="0.00148204775175856"
+        ixy="-1.48622066406727E-07"
+        ixz="-0.000343405070858905"
+        iyy="0.00216452496496394"
+        iyz="-1.16895392395932E-07"
+        izz="0.00254496567193716" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://modelo_robot/meshes/link_3.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://modelo_robot/meshes/link_3.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="link_4">
+    <inertial>
+      <origin xyz="-0.000654160686675481 -0.00162488170749527 -0.0227999999999997" rpy="0 0 0" />
+      <mass value="0.373170941633092" />
+      <inertia
+        ixx="0.000451724736326124"
+        ixy="-4.63422396718974E-20"
+        ixz="8.31354205258362E-20"
+        iyy="0.000451724736326124"
+        iyz="-3.90374832851125E-18"
+        izz="0.000808988246490583" />
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://modelo_robot/meshes/link_4.STL" />
+      </geometry>
+      <material name="">
+        <color rgba="0.890196078431372 0.0784313725490196 0 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <mesh filename="package://modelo_robot/meshes/link_4.STL" />
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- ==================== JOINTS ==================== -->
+
+  <joint name="joint_1" type="revolute">
+    <origin xyz="0 0 0" rpy="1.5708 0 0" />
+    <parent link="base_link" />
+    <child link="link_1" />
+    <axis xyz="0 0 -1" />
+    <limit lower="-1.5708" upper="1.5708" effort="10" velocity="10" />
+  </joint>
+
+  <joint name="joint_2" type="revolute">
+    <origin xyz="-0.0127 -0.023319 0.11983" rpy="1.5708 0 -1.5708" />
+    <parent link="link_1" />
+    <child link="link_2" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.5708" upper="1.5708" effort="10" velocity="10" />
+  </joint>
+
+  <joint name="joint_3" type="revolute">
+    <origin xyz="0.25067 -0.00012665 0" rpy="0 0 0" />
+    <parent link="link_2" />
+    <child link="link_3" />
+    <axis xyz="0 0 1" />
+    <limit lower="-1.5708" upper="1.5708" effort="10" velocity="10" />
+  </joint>
+
+  <joint name="joint_4" type="revolute">
+    <origin xyz="0.25 0 0.00025" rpy="0 0 0" />
+    <parent link="link_3" />
+    <child link="link_4" />
+    <axis xyz="0 0 -1" />
+    <limit lower="-1.5708" upper="1.5708" effort="10" velocity="10" />
+  </joint>
+
+  <!-- ==================== ROS2 CONTROL ==================== -->
+  <!--
+    Plugin correcto para Ignition Gazebo 6 (Fortress) con ros-humble-gz-ros2-control.
+    Confirmado via:
+      - /opt/ros/humble/share/gz_ros2_control/gz_hardware_plugins.xml
+      - nm -D libign_ros2_control-system.so -> gz_ros2_control::GazeboSimROS2ControlPlugin
+      - Documentacion oficial: control.ros.org/humble/doc/gz_ros2_control
+  -->
+  <ros2_control name="GazeboSimSystem" type="system">
+    <hardware>
+      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+    </hardware>
+
+    <joint name="joint_1">
+      <command_interface name="position">
+        <param name="min">-1.5708</param>
+        <param name="max">1.5708</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="joint_2">
+      <command_interface name="position">
+        <param name="min">-1.5708</param>
+        <param name="max">1.5708</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="joint_3">
+      <command_interface name="position">
+        <param name="min">-1.5708</param>
+        <param name="max">1.5708</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="joint_4">
+      <command_interface name="position">
+        <param name="min">-1.5708</param>
+        <param name="max">1.5708</param>
+      </command_interface>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+  </ros2_control>
+
+  <!-- ==================== GAZEBO PLUGIN gz_ros2_control ==================== -->
+  <!--
+    IMPORTANTE: <parameters> contiene el placeholder RUTA_CONTROLLERS_YAML.
+    El launch file (gazebo.launch.py) lo reemplaza en tiempo de ejecucion con
+    la ruta absoluta real usando Python:
+      robot_desc = robot_desc.replace('RUTA_CONTROLLERS_YAML', controllers_yaml)
+    NO editar manualmente este placeholder.
+
+    filename="gz_ros2_control-system"
+      -> Sin prefijo "lib" ni extension ".so". Formato requerido por Ignition.
+    name="gz_ros2_control::GazeboSimROS2ControlPlugin"
+      -> Clase confirmada con: nm -D libign_ros2_control-system.so
+  -->
+  <gazebo>
+    <plugin filename="gz_ros2_control-system"
+            name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+      <robot_param>robot_description</robot_param>
+      <robot_param_node>robot_state_publisher</robot_param_node>
+      <parameters>RUTA_CONTROLLERS_YAML</parameters>
+    </plugin>
+  </gazebo>
+
+  <!-- ==================== GAZEBO MATERIALES ==================== -->
+  <!--
+    Nota: los tags Gazebo/Blue etc. son de Gazebo Classic (OGRE).
+    En Ignition Gazebo 6 se ignoran silenciosamente.
+    Los colores provienen del tag <color rgba> en <visual> de cada link.
+  -->
+  <gazebo reference="base_link">
+    <material>Gazebo/Blue</material>
+  </gazebo>
+
+  <gazebo reference="link_1">
+    <material>Gazebo/Red</material>
+  </gazebo>
+
+  <gazebo reference="link_2">
+    <material>Gazebo/Grey</material>
+  </gazebo>
+
+  <gazebo reference="link_3">
+    <material>Gazebo/Grey</material>
+  </gazebo>
+
+  <gazebo reference="link_4">
+    <material>Gazebo/Orange</material>
+  </gazebo>
+
+</robot>
