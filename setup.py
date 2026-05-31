@@ -30,6 +30,7 @@ setup(
     entry_points={
         'console_scripts': [
             'joint_gui_bridge = modelo_robot.joint_gui_bridge:main',
+            'cinematica_directa = modelo_robot.cinematica_directa:main',                          
         ],
     },
 )
