@@ -502,11 +502,14 @@ class CinematicaGUI:
 
         tab_fk = tk.Frame(nb, padx=10, pady=8)
         tab_ik = tk.Frame(nb, padx=10, pady=8)
-        nb.add(tab_fk, text='  Cinemática Directa (FK)  ')
-        nb.add(tab_ik, text='  Cinemática Inversa (IK)  ')
+        tab_jac = tk.Frame(nb, padx=10, pady=8)
+        nb.add(tab_fk,  text='  Cinemática Directa (FK)  ')
+        nb.add(tab_ik,  text='  Cinemática Inversa (IK)  ')
+        nb.add(tab_jac, text='  Jacobiano  ')
 
         self._build_fk_tab(tab_fk)
         self._build_ik_tab(tab_ik)
+        self._build_jac_tab(tab_jac)
 
     # ── TAB FK ───────────────────────────────────────────────────────────────
 
@@ -955,6 +958,288 @@ class CinematicaGUI:
                            else f'⚠ {r.error_string}')
         self.ik_send_btn.config(state='normal', text='▶  Enviar solución a Gazebo')
 
+    # ── TAB JACOBIANO ────────────────────────────────────────────────────────
+
+    def _build_jac_tab(self, parent):
+        main = tk.Frame(parent)
+        main.pack(fill='both', expand=True)
+
+        left = tk.Frame(main)
+        left.grid(row=0, column=0, padx=(0,12), sticky='n')
+
+        # ── Sliders de entrada ───────────────────────────────────────────────
+        in_f = tk.LabelFrame(left, text='Configuración articular (grados)',
+                             font=('Helvetica', 10, 'bold'), padx=12, pady=8)
+        in_f.pack(fill='x', pady=(0,8))
+
+        self.jac_sliders = {}
+        self.jac_labels  = {}
+
+        for row, joint in enumerate(JOINT_NAMES_CTRL):
+            lo, hi = JOINT_LIMITS_DEG[joint]
+            tk.Label(in_f, text=joint, font=('Helvetica', 10),
+                     width=9, anchor='w').grid(row=row, column=0, pady=5)
+            tk.Label(in_f, text=f'{lo:.0f}°',
+                     font=('Helvetica', 9), fg='gray').grid(row=row, column=1)
+            var = tk.DoubleVar(value=0.0)
+            ttk.Scale(in_f, from_=lo, to=hi, orient='horizontal',
+                      variable=var, length=230,
+                      command=lambda v, dv=var: self._on_jac_slider(dv)
+                      ).grid(row=row, column=2, padx=6)
+            tk.Label(in_f, text=f'{hi:.0f}°',
+                     font=('Helvetica', 9), fg='gray').grid(row=row, column=3)
+            lbl = tk.Label(in_f, text='  0.0°', font=('Helvetica', 10),
+                           width=8, anchor='e')
+            lbl.grid(row=row, column=4)
+            self.jac_sliders[joint] = var
+            self.jac_labels[joint]  = lbl
+
+        # Botones
+        btn_f = tk.Frame(left)
+        btn_f.pack(fill='x', pady=(0,8))
+        tk.Button(btn_f, text='⟳  Leer estado real',
+                  font=('Helvetica', 9), relief='flat', bg='#e3f2fd',
+                  command=self._jac_read_real).pack(side='left', padx=(0,6))
+        tk.Button(btn_f, text='⟳  Cero',
+                  font=('Helvetica', 9), relief='flat', bg='#e0e0e0',
+                  command=self._jac_reset).pack(side='left')
+
+        # ── Posición efector ─────────────────────────────────────────────────
+        pos_f = tk.LabelFrame(left, text='Posición efector (base_link)',
+                              font=('Helvetica', 10, 'bold'), padx=10, pady=6)
+        pos_f.pack(fill='x', pady=(0,8))
+        self.jac_pos = {}
+        for i, axis in enumerate(['x', 'y', 'z']):
+            tk.Label(pos_f, text=f'{axis} =',
+                     font=('Helvetica', 11, 'bold'), width=3
+                     ).grid(row=i, column=0)
+            var = tk.StringVar(value='0.0000 m')
+            tk.Label(pos_f, textvariable=var,
+                     font=('Courier', 11), width=13, anchor='w'
+                     ).grid(row=i, column=1, padx=(4,0))
+            self.jac_pos[axis] = var
+
+        # ── Análisis de singularidad ─────────────────────────────────────────
+        sing_f = tk.LabelFrame(left, text='Análisis de singularidad',
+                               font=('Helvetica', 10, 'bold'), padx=10, pady=6)
+        sing_f.pack(fill='x', pady=(0,8))
+
+        tk.Label(sing_f, text='det(J_lin) =',
+                 font=('Helvetica', 10), width=14, anchor='w'
+                 ).grid(row=0, column=0)
+        self.jac_det = tk.Label(sing_f, text='—',
+                                font=('Courier', 10), anchor='w')
+        self.jac_det.grid(row=0, column=1, padx=(4,0))
+
+        tk.Label(sing_f, text='cond(J_lin) =',
+                 font=('Helvetica', 10), width=14, anchor='w'
+                 ).grid(row=1, column=0)
+        self.jac_cond = tk.Label(sing_f, text='—',
+                                 font=('Courier', 10), anchor='w')
+        self.jac_cond.grid(row=1, column=1, padx=(4,0))
+
+        tk.Label(sing_f, text='σ (SVD) =',
+                 font=('Helvetica', 10), width=14, anchor='w'
+                 ).grid(row=2, column=0)
+        self.jac_svd = tk.Label(sing_f, text='—',
+                                font=('Courier', 10), anchor='w')
+        self.jac_svd.grid(row=2, column=1, padx=(4,0))
+
+        self.jac_sing_lbl = tk.Label(sing_f, text='',
+                                     font=('Helvetica', 10, 'bold'))
+        self.jac_sing_lbl.grid(row=3, column=0, columnspan=2, pady=(6,0))
+
+        # ── Ejes en base_link ────────────────────────────────────────────────
+        ax_f = tk.LabelFrame(left, text='Ejes de rotación en base_link (z_i)',
+                             font=('Helvetica', 10, 'bold'), padx=10, pady=6)
+        ax_f.pack(fill='x', pady=(0,8))
+        self.jac_axes = {}
+        for i, joint in enumerate(JOINT_NAMES_CTRL):
+            tk.Label(ax_f, text=f'z_{i+1} ({joint}):',
+                     font=('Helvetica', 9), width=16, anchor='w'
+                     ).grid(row=i, column=0)
+            lbl = tk.Label(ax_f, text='—', font=('Courier', 9), anchor='w')
+            lbl.grid(row=i, column=1, padx=(4,0))
+            self.jac_axes[joint] = lbl
+
+        # ── Panel derecho: matrices ──────────────────────────────────────────
+        right = tk.Frame(main)
+        right.grid(row=0, column=1, sticky='n')
+
+        mth_f = tk.LabelFrame(right,
+                              text='Jacobiano geométrico J(q) y verificación numérica',
+                              font=('Helvetica', 10, 'bold'), padx=8, pady=6)
+        mth_f.pack(fill='both', expand=True)
+
+        self.jac_txt = scrolledtext.ScrolledText(
+            mth_f, width=62, height=48,
+            font=('Courier', 9), state='disabled',
+            bg='#1e1e1e', fg='#d4d4d4')
+        self.jac_txt.pack()
+
+        # Calcular estado inicial
+        self._update_jacobian()
+
+    # ── lógica Jacobiano ─────────────────────────────────────────────────────
+
+    def _on_jac_slider(self, var):
+        for j, sv in self.jac_sliders.items():
+            self.jac_labels[j].config(text=f'{sv.get():+.1f}°')
+        self._update_jacobian()
+
+    def _jac_reset(self):
+        for j, var in self.jac_sliders.items():
+            var.set(0.0)
+            self.jac_labels[j].config(text='  0.0°')
+        self._update_jacobian()
+
+    def _jac_read_real(self):
+        real = self.node.get_real_positions_deg()
+        for j in JOINT_NAMES_CTRL:
+            deg = real.get(j, 0.0)
+            self.jac_sliders[j].set(deg)
+            self.jac_labels[j].config(text=f'{deg:+.1f}°')
+        self._update_jacobian()
+
+    def _update_jacobian(self):
+        j1 = self.jac_sliders['joint_1'].get()
+        j2 = self.jac_sliders['joint_2'].get()
+        j3 = self.jac_sliders['joint_3'].get()
+
+        res = compute_jacobian(j1, j2, j3)
+
+        # Posición efector
+        p = res['p_ef']
+        self.jac_pos['x'].set(f'{p[0]:+.4f} m')
+        self.jac_pos['y'].set(f'{p[1]:+.4f} m')
+        self.jac_pos['z'].set(f'{p[2]:+.4f} m')
+
+        # Singularidad
+        det   = res['det_lin']
+        cond  = res['cond_lin']
+        sv    = res['svd']
+        sing  = res['singular']
+
+        self.jac_det.config(text=f'{det:+.6f}')
+        self.jac_cond.config(
+            text=f'{cond:.2f}' if not math.isinf(cond) else '∞  (singular)')
+        self.jac_svd.config(
+            text=f'[{sv[0]:.4f},  {sv[1]:.4f},  {sv[2]:.4f}]')
+
+        if sing:
+            self.jac_sing_lbl.config(
+                text='⚠  SINGULARIDAD DETECTADA  ⚠', fg='red')
+        else:
+            self.jac_sing_lbl.config(
+                text='✓  Configuración no singular', fg='green')
+
+        # Ejes en base_link
+        axes = res['z_axes']
+        for i, joint in enumerate(JOINT_NAMES_CTRL):
+            z = axes[i]
+            self.jac_axes[joint].config(
+                text=f'[{z[0]:+.4f},  {z[1]:+.4f},  {z[2]:+.4f}]')
+
+        # Texto completo en panel derecho
+        J     = res['J']
+        J_lin = res['J_lin']
+        J_ang = res['J_ang']
+        J_num = res['J_num']
+        origs = res['origins']
+
+        lines = []
+        lines.append(
+            "═══════════════════════════════════════════════════\n"
+            " JACOBIANO GEOMÉTRICO  J(q) ∈ R^{6×3}\n"
+            "═══════════════════════════════════════════════════\n\n"
+            " Formulación: robot serie de 3 juntas REVOLUTE\n\n"
+            " Cada columna i:\n"
+            "   J_v[:,i] = z_{i-1} × (p_ef − p_{i-1})   [m/rad]\n"
+            "   J_ω[:,i] = z_{i-1}                        [1/rad]\n\n"
+            f" Configuración:  j1={j1:+.2f}°   j2={j2:+.2f}°   j3={j3:+.2f}°\n"
+            f" Efector:  x={p[0]:+.4f}  y={p[1]:+.4f}  z={p[2]:+.4f}  [m]\n"
+        )
+
+        # Orígenes de los frames
+        lines.append("───────────────────────────────────────────────────")
+        lines.append(" Orígenes de frames en base_link:")
+        labels_orig = ['p_base (joint_1)', 'p_link1 (joint_2)', 'p_link2 (joint_3)']
+        for lb, orig in zip(labels_orig, origs):
+            lines.append(
+                f"   {lb}:  [{orig[0]:+.4f},  {orig[1]:+.4f},  {orig[2]:+.4f}]")
+
+        # Ejes z en base_link
+        lines.append("\n Ejes de rotación en base_link:")
+        ax_labels = [
+            'z_1 joint_1 (axis= 0  0 −1)',
+            'z_2 joint_2 (axis= 0  0  1)',
+            'z_3 joint_3 (axis= 0  0  1)',
+        ]
+        for lb, z in zip(ax_labels, axes):
+            lines.append(
+                f"   {lb}:  [{z[0]:+.4f},  {z[1]:+.4f},  {z[2]:+.4f}]")
+
+        # Jacobiano completo 6×3
+        lines.append("\n───────────────────────────────────────────────────")
+        lines.append(" J(q)  [6×3]  —  filas: [vx vy vz ωx ωy ωz]ᵀ")
+        lines.append("             joint_1        joint_2        joint_3")
+        row_labels = ['vx', 'vy', 'vz', 'ωx', 'ωy', 'ωz']
+        for i, rl in enumerate(row_labels):
+            lines.append(
+                f"  {rl}  [ {J[i,0]:+10.6f}   {J[i,1]:+10.6f}   {J[i,2]:+10.6f} ]")
+
+        # Parte lineal y angular por separado
+        lines.append("\n───────────────────────────────────────────────────")
+        lines.append(jac_str(" J_lineal  J[:3,:]  [3×3]  [m/rad]", J_lin))
+        lines.append("")
+        lines.append(jac_str(" J_angular J[3:,:]  [3×3]  [1/rad]", J_ang))
+
+        # Análisis SVD
+        lines.append("\n───────────────────────────────────────────────────")
+        lines.append(" ANÁLISIS SVD de J_lineal:")
+        lines.append(f"   σ₁ = {sv[0]:.6f}  (mayor — dirección más móvil)")
+        lines.append(f"   σ₂ = {sv[1]:.6f}")
+        lines.append(f"   σ₃ = {sv[2]:.6f}  (menor — dirección más difícil)")
+        lines.append(f"   det(J_lin)  = {det:+.6f}")
+        cond_str = f'{cond:.4f}' if not math.isinf(cond) else '∞'
+        lines.append(f"   cond(J_lin) = {cond_str}")
+        lines.append(f"   {'⚠ SINGULAR (|det|<1e-4)' if sing else '✓ No singular'}")
+
+        # Verificación numérica
+        lines.append("\n───────────────────────────────────────────────────")
+        lines.append(" VERIFICACIÓN NUMÉRICA (diferencias finitas, ε=1e-7)")
+        lines.append(jac_str(" J_num  [3×3]  [m/rad]", J_num))
+
+        # Error entre analítico y numérico
+        err_jac = np.linalg.norm(J_lin - J_num)
+        lines.append(f"\n ‖J_lin − J_num‖ = {err_jac:.2e}  "
+                     f"({'✓ OK' if err_jac < 1e-4 else '⚠ Revisar'})")
+
+        # Jacobiano inverso / pseudoinverso
+        lines.append("\n───────────────────────────────────────────────────")
+        lines.append(" PSEUDOINVERSO DE MOORE-PENROSE  J⁺ = Vᵀ · Σ⁺ · Uᵀ")
+        lines.append(" (útil para control de velocidad: q̇ = J⁺ · ẋ)")
+        try:
+            J_pinv = np.linalg.pinv(J_lin)
+            lines.append(jac_str(" J⁺  [3×3]  [rad/m]", J_pinv))
+        except Exception:
+            lines.append("  No disponible (configuración singular)")
+
+        # Elipsoides de manipulabilidad
+        lines.append("\n───────────────────────────────────────────────────")
+        lines.append(" MANIPULABILIDAD (Yoshikawa):")
+        manip = math.sqrt(max(0.0, abs(det)))
+        lines.append(f"   w = sqrt(|det(J_lin)|) = {manip:.6f}")
+        lines.append(f"   (0 → singular,  mayor → más manipulable)")
+        lines.append(f"   Semiejes elipsoide: σ₁={sv[0]:.4f}  "
+                     f"σ₂={sv[1]:.4f}  σ₃={sv[2]:.4f}")
+
+        full_text = '\n'.join(lines)
+        self.jac_txt.config(state='normal')
+        self.jac_txt.delete('1.0', tk.END)
+        self.jac_txt.insert(tk.END, full_text)
+        self.jac_txt.config(state='disabled')
+
     def run(self):
         self.root.mainloop()
 
@@ -975,3 +1260,136 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# JACOBIANO — Derivación analítica y numérica
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# El Jacobiano geométrico J(q) ∈ R^{6×3} relaciona velocidades
+# articulares con velocidades cartesianas del efector:
+#
+#     [v]   = J(q) · [dj1/dt]
+#     [ω]           [dj2/dt]
+#                   [dj3/dt]
+#
+# Para un robot de juntas revolute, cada columna i del Jacobiano es:
+#
+#     J_v_i = z_{i-1} × (p_ef - p_{i-1})   ← contribución lineal
+#     J_ω_i = z_{i-1}                        ← contribución angular
+#
+# donde z_{i-1} es el eje de rotación del joint i expresado en base_link,
+# y p_{i-1} es el origen del frame i-1 en base_link.
+#
+# Ejes de rotación en frame local de cada link (del URDF):
+#   joint_1: axis="0 0 -1" → z_local = [0, 0, -1]
+#   joint_2: axis="0 0  1" → z_local = [0, 0,  1]
+#   joint_3: axis="0 0  1" → z_local = [0, 0,  1]
+#
+# El eje en base_link se obtiene rotando por la MTH acumulada:
+#   z_i_global = T0i[:3,:3] · z_local_i
+
+def compute_jacobian(j1_deg: float, j2_deg: float, j3_deg: float):
+    """
+    Calcula el Jacobiano geométrico J(q) ∈ R^{6×3} del efector final.
+
+    Columnas del Jacobiano (robot de 3 juntas revolute):
+        J[:,i] = [z_{i-1} × (p_ef - p_{i-1})]   ← parte lineal (3×1)
+                 [z_{i-1}                      ]   ← parte angular (3×1)
+
+    También calcula numéricamente J_num por diferencias finitas
+    para verificación cruzada.
+
+    Retorna dict con:
+        'J'        : Jacobiano geométrico (6×3)
+        'J_num'    : Jacobiano numérico   (6×3) — solo parte lineal (3×3)
+        'J_lin'    : parte lineal  J[:3,:]  (3×3)
+        'J_ang'    : parte angular J[3:,:]  (3×3)
+        'det_lin'  : det(J_lin) — medida de singularidad
+        'cond_lin' : número de condición de J_lin
+        'singular' : bool — True si cerca de singularidad
+        'svd'      : valores singulares de J_lin
+    """
+    R1 = Rz(-j1_deg)
+    R2 = Rz( j2_deg)
+    R3 = Rz( j3_deg)
+
+    # MTH acumuladas para obtener orígenes y ejes en base_link
+    T01 = T_BL1_0  @ R1
+    T02 = T01 @ T_L1L2_0 @ R2
+    T03 = T02 @ T_L2L3_0 @ R3
+    T04 = T03 @ T_L3L4_0
+
+    # Orígenes de cada frame en base_link
+    p0  = np.array([0.0, 0.0, 0.0])   # base_link
+    p1  = T01[:3, 3]                   # origen link_1
+    p2  = T02[:3, 3]                   # origen link_2
+    p_ef = T04[:3, 3]                  # efector final
+
+    # Ejes locales de cada joint (en su frame local)
+    z_local_1 = np.array([0.0, 0.0, -1.0])   # axis="0 0 -1"
+    z_local_2 = np.array([0.0, 0.0,  1.0])   # axis="0 0  1"
+    z_local_3 = np.array([0.0, 0.0,  1.0])   # axis="0 0  1"
+
+    # Ejes en base_link (rotar por la MTH del frame PADRE)
+    # joint_1 está en T01, su eje se expresa con la rotación de T01
+    # (antes de aplicar el joint, es decir, frame padre = base_link·T_BL1_0)
+    # Usamos la rotación acumulada hasta el frame donde vive el eje
+    z1 = T_BL1_0[:3, :3] @ z_local_1   # eje joint_1 en base_link
+    z2 = T01[:3,  :3] @ (T_L1L2_0[:3,:3] @ z_local_2)  # eje joint_2
+    z3 = T02[:3,  :3] @ (T_L2L3_0[:3,:3] @ z_local_3)  # eje joint_3
+
+    # Vectores desde origen de cada joint al efector
+    d1 = p_ef - p0   # joint_1 en base_link
+    d2 = p_ef - p1   # joint_2 en origen link_1
+    d3 = p_ef - p2   # joint_3 en origen link_2
+
+    # Columnas del Jacobiano: [z × d ; z]
+    Jv1 = np.cross(z1, d1);  Jw1 = z1
+    Jv2 = np.cross(z2, d2);  Jw2 = z2
+    Jv3 = np.cross(z3, d3);  Jw3 = z3
+
+    J = np.zeros((6, 3))
+    J[:3, 0] = Jv1;  J[3:, 0] = Jw1
+    J[:3, 1] = Jv2;  J[3:, 1] = Jw2
+    J[:3, 2] = Jv3;  J[3:, 2] = Jw3
+
+    # Jacobiano numérico por diferencias finitas (solo parte lineal)
+    eps = 1e-7
+    J_num = np.zeros((3, 3))
+    _, x0, y0, z0 = forward_kinematics(j1_deg, j2_deg, j3_deg)
+    p0v = np.array([x0, y0, z0])
+    for i, (dj1, dj2, dj3) in enumerate([
+        (eps, 0, 0), (0, eps, 0), (0, 0, eps)
+    ]):
+        _, xi, yi, zi = forward_kinematics(j1_deg+dj1, j2_deg+dj2, j3_deg+dj3)
+        J_num[:, i] = (np.array([xi, yi, zi]) - p0v) / eps
+
+    # Análisis de singularidades sobre J lineal
+    J_lin = J[:3, :]
+    J_ang = J[3:, :]
+    det_lin  = np.linalg.det(J_lin)
+    U, sv, Vt = np.linalg.svd(J_lin)
+    cond_lin = float(sv[0] / sv[-1]) if sv[-1] > 1e-10 else float('inf')
+    singular = abs(det_lin) < 1e-4
+
+    return {
+        'J':        J,
+        'J_num':    J_num,
+        'J_lin':    J_lin,
+        'J_ang':    J_ang,
+        'det_lin':  det_lin,
+        'cond_lin': cond_lin,
+        'singular': singular,
+        'svd':      sv,
+        'p_ef':     p_ef,
+        'z_axes':   [z1, z2, z3],
+        'origins':  [p0, p1, p2],
+    }
+
+
+def jac_str(name: str, M: np.ndarray) -> str:
+    """Formatea una matriz para mostrar en texto."""
+    lines = [f'{name}:']
+    for row in M:
+        lines.append('  [ ' + '  '.join(f'{v:+10.6f}' for v in row) + ' ]')
+    return '\n'.join(lines)
